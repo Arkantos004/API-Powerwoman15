@@ -105,6 +105,11 @@ export interface RegisterRequest {
   email: string;
   full_name: string;
   password: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  postal_code?: string;
 }
 
 export interface CreateProductRequest {

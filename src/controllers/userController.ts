@@ -7,7 +7,7 @@ import { User, LoginRequest, RegisterRequest, ApiResponse } from '../types';
 // Registrar nuevo usuario
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, full_name, password } = req.body as RegisterRequest;
+    const { email, full_name, password, phone, address, city, country, postal_code } = req.body as RegisterRequest;
 
     // Validar campos requeridos
     if (!email || !full_name || !password) {
@@ -33,8 +33,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     // Crear usuario
     const result = await query(
-      'INSERT INTO users (email, full_name, password_hash) VALUES ($1, $2, $3) RETURNING id, email, full_name, is_admin, created_at',
-      [email, full_name, hashedPassword]
+      'INSERT INTO users (email, full_name, password_hash, phone, address, city, country, postal_code) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email, full_name, phone, address, city, country, postal_code, is_admin, created_at',
+      [email, full_name, hashedPassword, phone || null, address || null, city || null, country || null, postal_code || null]
     );
 
     const user = result.rows[0];
@@ -130,7 +130,7 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
     const userId = (req as any).userId;
 
     const result = await query(
-      'SELECT id, email, full_name, phone, address, city, country, postal_code, profile_image_url, is_admin, created_at FROM users WHERE id = $1',
+      'SELECT id, email, full_name, phone, address, city, country, postal_code, profile_image_url, is_admin, is_instructor, instructor_approved, created_at FROM users WHERE id = $1',
       [userId]
     );
 
@@ -191,5 +191,115 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
   } catch (error) {
     console.error('Error obteniendo usuarios:', error);
     res.status(500).json({ success: false, error: 'Error al obtener usuarios' });
+  }
+};
+
+// Solicitar ser instructora
+export const requestInstructor = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).userId;
+
+    // Verificar si ya solicitó
+    const checkRequest = await query(
+      'SELECT is_instructor, instructor_approved FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (checkRequest.rows.length === 0) {
+      res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+      return;
+    }
+
+    const user = checkRequest.rows[0];
+
+    if (user.is_instructor) {
+      res.status(400).json({ success: false, error: 'Ya eres instructora' });
+      return;
+    }
+
+    // Actualizar solicitud
+    const result = await query(
+      'UPDATE users SET is_instructor = true, instructor_request_date = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id, email, full_name, is_instructor, instructor_approved',
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Solicitud de instructora registrada. El admin la revisará pronto.',
+      data: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Error solicitando instructor:', error);
+    res.status(500).json({ success: false, error: 'Error al solicitar ser instructora' });
+  }
+};
+
+// Obtener solicitudes de instructoras (solo admin)
+export const getInstructorRequests = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await query(
+      'SELECT id, email, full_name, instructor_request_date FROM users WHERE is_instructor = true AND instructor_approved = false ORDER BY instructor_request_date DESC'
+    );
+
+    res.json({
+      success: true,
+      data: result.rows,
+      count: result.rowCount,
+    });
+  } catch (error) {
+    console.error('Error obteniendo solicitudes:', error);
+    res.status(500).json({ success: false, error: 'Error al obtener solicitudes' });
+  }
+};
+
+// Aprobar instructora (solo admin)
+export const approveInstructor = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+
+    const result = await query(
+      'UPDATE users SET instructor_approved = true WHERE id = $1 RETURNING id, email, full_name, is_instructor, instructor_approved',
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: 'Instructora aprobada exitosamente',
+      data: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Error aprobando instructora:', error);
+    res.status(500).json({ success: false, error: 'Error al aprobar instructora' });
+  }
+};
+
+// Rechazar solicitud de instructora (solo admin)
+export const rejectInstructor = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+
+    const result = await query(
+      'UPDATE users SET is_instructor = false, instructor_approved = false, instructor_request_date = NULL WHERE id = $1 RETURNING id, email, full_name, is_instructor, instructor_approved',
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: 'Solicitud de instructora rechazada',
+      data: result.rows[0],
+    });
+  } catch (error) {
+    console.error('Error rechazando instructora:', error);
+    res.status(500).json({ success: false, error: 'Error al rechazar solicitud' });
   }
 };

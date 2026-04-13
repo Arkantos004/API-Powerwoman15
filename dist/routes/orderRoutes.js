@@ -10,6 +10,6 @@ router.get('/:id', auth_1.authMiddleware, orderController_1.getOrderById);
 router.post('/', auth_1.authMiddleware, orderController_1.createOrder);
 router.patch('/:id/status', auth_1.authMiddleware, orderController_1.updateOrderStatus);
 // Rutas admin
-router.get('/admin/all', auth_1.authMiddleware, orderController_1.getAllOrders);
+router.get('/admin/all', auth_1.authMiddleware, auth_1.adminMiddleware, orderController_1.getAllOrders);
 exports.default = router;
 //# sourceMappingURL=orderRoutes.js.map

@@ -8,9 +8,9 @@ const router = (0, express_1.Router)();
 router.get('/', productController_1.getAllProducts);
 router.get('/categories', productController_1.getCategories);
 router.get('/:id', productController_1.getProductById);
-// Rutas protegidas (admin)
-router.post('/', auth_1.authMiddleware, productController_1.createProduct);
-router.put('/:id', auth_1.authMiddleware, productController_1.updateProduct);
-router.delete('/:id', auth_1.authMiddleware, productController_1.deleteProduct);
+// Rutas protegidas (admin only)
+router.post('/', auth_1.authMiddleware, auth_1.adminMiddleware, productController_1.createProduct);
+router.put('/:id', auth_1.authMiddleware, auth_1.adminMiddleware, productController_1.updateProduct);
+router.delete('/:id', auth_1.authMiddleware, auth_1.adminMiddleware, productController_1.deleteProduct);
 exports.default = router;
 //# sourceMappingURL=productRoutes.js.map

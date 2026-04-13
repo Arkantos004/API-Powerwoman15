@@ -4,5 +4,6 @@ export interface AuthRequest extends Request {
     user?: any;
 }
 export declare const authMiddleware: (req: AuthRequest, res: Response, next: NextFunction) => void | Response;
+export declare const adminMiddleware: (req: AuthRequest, res: Response, next: NextFunction) => Promise<void | Response>;
 export declare const errorHandler: (err: any, req: Request, res: Response, next: NextFunction) => void;
 //# sourceMappingURL=auth.d.ts.map

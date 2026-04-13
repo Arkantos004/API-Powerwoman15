@@ -6,7 +6,7 @@ import {
   updateOrderStatus,
   getAllOrders,
 } from '../controllers/orderController';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, adminMiddleware } from '../middleware/auth';
 
 const router = Router();
 
@@ -17,6 +17,6 @@ router.post('/', authMiddleware, createOrder);
 router.patch('/:id/status', authMiddleware, updateOrderStatus);
 
 // Rutas admin
-router.get('/admin/all', authMiddleware, getAllOrders);
+router.get('/admin/all', authMiddleware, adminMiddleware, getAllOrders);
 
 export default router;
