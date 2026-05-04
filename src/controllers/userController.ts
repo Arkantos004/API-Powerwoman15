@@ -33,7 +33,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     // Crear usuario
     const result = await query(
-      'INSERT INTO users (email, full_name, password_hash, phone, address, city, country, postal_code) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email, full_name, phone, address, city, country, postal_code, is_admin, created_at',
+      'INSERT INTO users (email, full_name, password_hash, phone, address, city, country, postal_code) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email, full_name, phone, address, city, country, postal_code, is_admin, is_instructor, instructor_approved, profile_image_url, created_at',
       [email, full_name, hashedPassword, phone || null, address || null, city || null, country || null, postal_code || null]
     );
 
@@ -114,6 +114,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           email: user.email,
           full_name: user.full_name,
           is_admin: user.is_admin,
+          is_instructor: user.is_instructor,
+          instructor_approved: user.instructor_approved,
+          profile_image_url: user.profile_image_url,
         },
         token,
       },
@@ -180,7 +183,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
 export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     const result = await query(
-      'SELECT id, email, full_name, is_admin, is_active, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, email, full_name, is_admin, is_instructor, instructor_approved, phone, address, city, country, postal_code, created_at FROM users ORDER BY created_at DESC'
     );
 
     res.json({
@@ -198,6 +201,7 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
 export const requestInstructor = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
+    const { expertise_areas, portfolio_url, years_experience } = req.body;
 
     // Verificar si ya solicitó
     const checkRequest = await query(
@@ -217,10 +221,10 @@ export const requestInstructor = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Actualizar solicitud
+    // Actualizar solicitud con información adicional
     const result = await query(
-      'UPDATE users SET is_instructor = true, instructor_request_date = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id, email, full_name, is_instructor, instructor_approved',
-      [userId]
+      'UPDATE users SET is_instructor = true, instructor_request_date = CURRENT_TIMESTAMP, expertise_areas = $2, portfolio_url = $3, years_experience = $4 WHERE id = $1 RETURNING id, email, full_name, is_instructor, instructor_approved, expertise_areas, portfolio_url, years_experience',
+      [userId, expertise_areas || null, portfolio_url || null, years_experience || null]
     );
 
     res.json({
@@ -238,7 +242,7 @@ export const requestInstructor = async (req: Request, res: Response): Promise<vo
 export const getInstructorRequests = async (req: Request, res: Response): Promise<void> => {
   try {
     const result = await query(
-      'SELECT id, email, full_name, instructor_request_date FROM users WHERE is_instructor = true AND instructor_approved = false ORDER BY instructor_request_date DESC'
+      'SELECT id, email, full_name, instructor_request_date, expertise_areas, portfolio_url, years_experience FROM users WHERE is_instructor = true AND instructor_approved = false ORDER BY instructor_request_date DESC'
     );
 
     res.json({
