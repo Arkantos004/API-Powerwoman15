@@ -6,8 +6,12 @@ import path from 'path';
 import userRoutes from './routes/userRoutes';
 import productRoutes from './routes/productRoutes';
 import orderRoutes from './routes/orderRoutes';
+import invoiceRoutes from './routes/invoiceRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import courseRoutes from './routes/courseRoutes';
+import communityRoutes from './routes/communityRoutes';
+import reviewRoutes from './routes/reviewRoutes';
+import settingsRoutes from './routes/settingsRoutes';
 import { errorHandler } from './middleware/auth';
 
 dotenv.config();
@@ -27,8 +31,12 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/invoices', invoiceRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/courses', courseRoutes);
+app.use('/api/posts', communityRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Ruta de salud
 app.get('/api/health', (req, res) => {

@@ -10,8 +10,12 @@ const path_1 = __importDefault(require("path"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const productRoutes_1 = __importDefault(require("./routes/productRoutes"));
 const orderRoutes_1 = __importDefault(require("./routes/orderRoutes"));
+const invoiceRoutes_1 = __importDefault(require("./routes/invoiceRoutes"));
 const uploadRoutes_1 = __importDefault(require("./routes/uploadRoutes"));
 const courseRoutes_1 = __importDefault(require("./routes/courseRoutes"));
+const communityRoutes_1 = __importDefault(require("./routes/communityRoutes"));
+const reviewRoutes_1 = __importDefault(require("./routes/reviewRoutes"));
+const settingsRoutes_1 = __importDefault(require("./routes/settingsRoutes"));
 const auth_1 = require("./middleware/auth");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -26,8 +30,12 @@ app.use('/uploads', express_1.default.static(path_1.default.join(__dirname, '../
 app.use('/api/users', userRoutes_1.default);
 app.use('/api/products', productRoutes_1.default);
 app.use('/api/orders', orderRoutes_1.default);
+app.use('/api/invoices', invoiceRoutes_1.default);
 app.use('/api/upload', uploadRoutes_1.default);
 app.use('/api/courses', courseRoutes_1.default);
+app.use('/api/posts', communityRoutes_1.default);
+app.use('/api/reviews', reviewRoutes_1.default);
+app.use('/api/settings', settingsRoutes_1.default);
 // Ruta de salud
 app.get('/api/health', (req, res) => {
     res.json({ status: 'API POWERWOMAN funcionando ✅' });

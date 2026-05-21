@@ -156,11 +156,11 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
 export const updateProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).userId;
-    const { full_name, phone, address, city, country, postal_code } = req.body;
+    const { full_name, phone, address, city, country, postal_code, profile_image_url } = req.body;
 
     const result = await query(
-      'UPDATE users SET full_name = $1, phone = $2, address = $3, city = $4, country = $5, postal_code = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7 RETURNING id, email, full_name, phone, address, city, country, postal_code',
-      [full_name, phone, address, city, country, postal_code, userId]
+      'UPDATE users SET full_name = $1, phone = $2, address = $3, city = $4, country = $5, postal_code = $6, profile_image_url = $7, updated_at = CURRENT_TIMESTAMP WHERE id = $8 RETURNING id, email, full_name, phone, address, city, country, postal_code, profile_image_url',
+      [full_name, phone, address, city, country, postal_code, profile_image_url || null, userId]
     );
 
     if (result.rows.length === 0) {

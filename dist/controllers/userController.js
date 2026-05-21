@@ -31,7 +31,7 @@ const register = async (req, res) => {
         // Hashear contraseña
         const hashedPassword = await bcryptjs_1.default.hash(password, 10);
         // Crear usuario
-        const result = await (0, database_1.query)('INSERT INTO users (email, full_name, password_hash, phone, address, city, country, postal_code) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email, full_name, phone, address, city, country, postal_code, is_admin, created_at', [email, full_name, hashedPassword, phone || null, address || null, city || null, country || null, postal_code || null]);
+        const result = await (0, database_1.query)('INSERT INTO users (email, full_name, password_hash, phone, address, city, country, postal_code) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, email, full_name, phone, address, city, country, postal_code, is_admin, is_instructor, instructor_approved, profile_image_url, created_at', [email, full_name, hashedPassword, phone || null, address || null, city || null, country || null, postal_code || null]);
         const user = result.rows[0];
         // Generar JWT
         const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
@@ -92,6 +92,9 @@ const login = async (req, res) => {
                     email: user.email,
                     full_name: user.full_name,
                     is_admin: user.is_admin,
+                    is_instructor: user.is_instructor,
+                    instructor_approved: user.instructor_approved,
+                    profile_image_url: user.profile_image_url,
                 },
                 token,
             },
@@ -127,8 +130,8 @@ exports.getProfile = getProfile;
 const updateProfile = async (req, res) => {
     try {
         const userId = req.userId;
-        const { full_name, phone, address, city, country, postal_code } = req.body;
-        const result = await (0, database_1.query)('UPDATE users SET full_name = $1, phone = $2, address = $3, city = $4, country = $5, postal_code = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7 RETURNING id, email, full_name, phone, address, city, country, postal_code', [full_name, phone, address, city, country, postal_code, userId]);
+        const { full_name, phone, address, city, country, postal_code, profile_image_url } = req.body;
+        const result = await (0, database_1.query)('UPDATE users SET full_name = $1, phone = $2, address = $3, city = $4, country = $5, postal_code = $6, profile_image_url = $7, updated_at = CURRENT_TIMESTAMP WHERE id = $8 RETURNING id, email, full_name, phone, address, city, country, postal_code, profile_image_url', [full_name, phone, address, city, country, postal_code, profile_image_url || null, userId]);
         if (result.rows.length === 0) {
             res.status(404).json({ success: false, error: 'Usuario no encontrado' });
             return;
@@ -148,7 +151,7 @@ exports.updateProfile = updateProfile;
 // Obtener todos los usuarios (solo admin)
 const getAllUsers = async (req, res) => {
     try {
-        const result = await (0, database_1.query)('SELECT id, email, full_name, is_admin, is_active, created_at FROM users ORDER BY created_at DESC');
+        const result = await (0, database_1.query)('SELECT id, email, full_name, is_admin, is_instructor, instructor_approved, phone, address, city, country, postal_code, created_at FROM users ORDER BY created_at DESC');
         res.json({
             success: true,
             data: result.rows,
@@ -165,6 +168,7 @@ exports.getAllUsers = getAllUsers;
 const requestInstructor = async (req, res) => {
     try {
         const userId = req.userId;
+        const { expertise_areas, portfolio_url, years_experience } = req.body;
         // Verificar si ya solicitó
         const checkRequest = await (0, database_1.query)('SELECT is_instructor, instructor_approved FROM users WHERE id = $1', [userId]);
         if (checkRequest.rows.length === 0) {
@@ -176,8 +180,8 @@ const requestInstructor = async (req, res) => {
             res.status(400).json({ success: false, error: 'Ya eres instructora' });
             return;
         }
-        // Actualizar solicitud
-        const result = await (0, database_1.query)('UPDATE users SET is_instructor = true, instructor_request_date = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id, email, full_name, is_instructor, instructor_approved', [userId]);
+        // Actualizar solicitud con información adicional
+        const result = await (0, database_1.query)('UPDATE users SET is_instructor = true, instructor_request_date = CURRENT_TIMESTAMP, expertise_areas = $2, portfolio_url = $3, years_experience = $4 WHERE id = $1 RETURNING id, email, full_name, is_instructor, instructor_approved, expertise_areas, portfolio_url, years_experience', [userId, expertise_areas || null, portfolio_url || null, years_experience || null]);
         res.json({
             success: true,
             message: 'Solicitud de instructora registrada. El admin la revisará pronto.',
@@ -193,7 +197,7 @@ exports.requestInstructor = requestInstructor;
 // Obtener solicitudes de instructoras (solo admin)
 const getInstructorRequests = async (req, res) => {
     try {
-        const result = await (0, database_1.query)('SELECT id, email, full_name, instructor_request_date FROM users WHERE is_instructor = true AND instructor_approved = false ORDER BY instructor_request_date DESC');
+        const result = await (0, database_1.query)('SELECT id, email, full_name, instructor_request_date, expertise_areas, portfolio_url, years_experience FROM users WHERE is_instructor = true AND instructor_approved = false ORDER BY instructor_request_date DESC');
         res.json({
             success: true,
             data: result.rows,

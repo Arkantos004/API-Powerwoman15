@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAllOrders = exports.updateOrderStatus = exports.createOrder = exports.getOrderById = exports.getUserOrders = void 0;
 const database_1 = require("../config/database");
+const invoiceService_1 = require("../services/invoiceService");
 // Obtener todas las órdenes del usuario
 const getUserOrders = async (req, res) => {
     try {
@@ -94,11 +95,52 @@ const createOrder = async (req, res) => {
                 item.product_id,
             ]);
         }
-        res.status(201).json({
-            success: true,
-            message: 'Orden creada exitosamente',
-            data: orderResult.rows[0],
-        });
+        // Obtener información del usuario para la factura
+        const userResult = await (0, database_1.query)('SELECT email, full_name, phone, address FROM users WHERE id = $1', [userId]);
+        const user = userResult.rows[0];
+        // Obtener detalles de los items para la factura
+        const itemsDetailsResult = await (0, database_1.query)(`SELECT oi.product_id, p.name, oi.quantity, oi.price_cop, oi.subtotal_cop
+       FROM order_items oi
+       JOIN products p ON oi.product_id = p.id
+       WHERE oi.order_id = $1`, [orderId]);
+        const invoiceItems = itemsDetailsResult.rows.map((item) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price_cop,
+            subtotal: item.subtotal_cop,
+        }));
+        // Generar factura automáticamente
+        try {
+            const invoice = await invoiceService_1.invoiceService.createInvoice({
+                orderId,
+                userId,
+                items: invoiceItems,
+                subtotal,
+                tax,
+                total,
+                userEmail: user.email,
+                userName: user.full_name,
+                userPhone: user.phone,
+                userAddress: user.address,
+            });
+            res.status(201).json({
+                success: true,
+                message: 'Orden creada exitosamente y factura generada',
+                data: {
+                    order: orderResult.rows[0],
+                    invoice,
+                },
+            });
+        }
+        catch (invoiceError) {
+            console.error('Error generando factura:', invoiceError);
+            // Aún así devolvemos la orden creada, aunque la factura falle
+            res.status(201).json({
+                success: true,
+                message: 'Orden creada pero hubo un error al generar la factura',
+                data: orderResult.rows[0],
+            });
+        }
     }
     catch (error) {
         console.error('Error creando orden:', error);
